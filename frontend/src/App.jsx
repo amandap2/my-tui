@@ -1,11 +1,54 @@
-import {useState} from 'react';
+import {useState, useEffect, useRef } from 'react';
 import { RunCommand } from "../wailsjs/go/main/App";
 import './App.css';
-
 
 function App() {
     const[lines, setLines] = useState([]);
     const[input, setInput] = useState("");
+    const[time, setTime] = useState(new Date());
+
+    const banner = `█████╗ ███╗   ███╗ █████╗ ███╗   ██╗██████╗  █████╗ 
+██╔══██╗████╗ ████║██╔══██╗████╗  ██║██╔══██╗██╔══██╗
+███████║██╔████╔██║███████║██╔██╗ ██║██║  ██║███████║
+██╔══██║██║╚██╔╝██║██╔══██║██║╚██╗██║██║  ██║██╔══██║
+██║  ██║██║ ╚═╝ ██║██║  ██║██║ ╚████║██████╔╝██║  ██║
+╚═╝  ╚═╝╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═════╝ ╚═╝  ╚═╝`;
+
+    const ref = useRef(null);
+
+    useEffect(() => {
+        const el = ref.current;
+        const chars = "01";
+        const height = 40; // quantidade de linhas
+
+        let column = Array.from({ length: height }, () =>
+        chars[Math.floor(Math.random() * chars.length)]
+        );
+
+        function update() {
+        // remove último
+        column.pop();
+
+        // adiciona novo no topo
+        column.unshift(
+            chars[Math.floor(Math.random() * chars.length)]
+        );
+
+        el.textContent = column.join("\n");
+        }
+
+        const interval = setInterval(update, 80); // velocidade
+
+        return () => clearInterval(interval);
+    }, []);
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setTime(new Date());
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, []);
 
     async function runCommand() {
         if(!input.trim()) return;
@@ -33,23 +76,39 @@ function App() {
             <div className='header'>AP SHELL v1.0.0</div>
 
             <div className='terminal'>
-                {lines.map((line, i) => (
-                    <div key={i}>{line}</div>
-                ))}
+                <pre ref={ref} className="matrix-col" />
+                <div className='terminal-center'>
 
-                <div>
-                    &gt;
-                    <input
-                        value={input}
-                        onChange={(e) => setInput(e.target.value)}
-                        onKeyDown={handleKey}
-                        autoFocus 
-                    />
+                    <pre className="terminal-banner">{banner}</pre>
+
+                    {lines.map((line, i) => (
+                        <div key={i}>{line}</div>
+                    ))}
+
+                    <div>
+                        &gt;
+                        <input
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={handleKey}
+                            autoFocus 
+                        />
+                    </div>
                 </div>
-
             </div>
             
-            <div className="footer">MODE: NORMAL</div>
+            <div className="footer">
+                <p>MODE: NORMAL</p>
+                <p>
+                    TIME: {time.toLocaleTimeString("pt-BR", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                        hour12: false
+                    })}
+                </p>
+                <p>DATE: {time.toLocaleDateString()}</p>
+            </div>
         </div>
     );
 }
