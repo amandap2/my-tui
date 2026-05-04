@@ -1,6 +1,8 @@
 import {useState, useEffect, useRef } from 'react';
 import { RunCommand } from "../wailsjs/go/main/App";
 import './App.css';
+import image from "./assets/images/eu_ascii.jpg";
+import '@flaticon/flaticon-uicons/css/all/all.css';
 
 function App() {
     const[lines, setLines] = useState([]);
@@ -73,7 +75,9 @@ function App() {
 
     return (
         <div className='app'>
-            <div className='header'>AP SHELL v1.0.0</div>
+            <div className='header'>
+                <i class="fi fi-ts-galaxy-star"></i>  AP SHELL v1.0.0
+            </div>
 
             <div className='terminal'>
                 <pre ref={ref} className="matrix-col" />
@@ -95,6 +99,24 @@ function App() {
                         />
                     </div>
                 </div>
+
+                <div className='sidebar'>
+                    <div className='sidebar-user'>
+                            <p>USER PROFILE</p>
+
+                            <img src={image} alt="selfie" width={200}/>
+                    </div>
+                    <div className='sidebar-info'>
+                        <p>
+                            HELP
+                        </p>
+
+                        <div>
+                            <p>/help - to get all commands</p>
+                        </div>
+                    </div>
+                </div>
+
             </div>
             
             <div className="footer">
