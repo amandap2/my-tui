@@ -1,8 +1,10 @@
 import {useState, useEffect, useRef } from 'react';
-import { RunCommand } from "../wailsjs/go/main/App";
+import { StartShell, SendInput, Resize } from "../wailsjs/go/main/App";
 import './App.css';
 import image from "./assets/images/eu_ascii.jpg";
 import '@flaticon/flaticon-uicons/css/all/all.css';
+import { EventsOn } from '../wailsjs/runtime/runtime';
+import XTerminal from "./Terminal";
 
 function App() {
     const[lines, setLines] = useState([]);
@@ -17,6 +19,11 @@ function App() {
 ╚═╝  ╚═╝╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═════╝ ╚═╝  ╚═╝`;
 
     const ref = useRef(null);
+
+    const [terminalBuffer, setTerminalBuffer] = useState("");
+    const terminalRef = useRef(null);
+    const [mode, setMode] = useState("normal"); // normal | shell
+    const [ready, setReady] = useState(false);
 
     useEffect(() => {
         const el = ref.current;
@@ -52,19 +59,60 @@ function App() {
         return () => clearInterval(timer);
     }, []);
 
+    useEffect(() => {
+        EventsOn("shell:output", (data) => {
+            setTerminalBuffer(prev => prev + data);
+        });
+    }, []);
+
+    function handleResize() {
+        if (mode !== "shell") return;
+        const cols = Math.floor(window.innerWidth / 8);
+        const rows = Math.floor(window.innerHeight / 18);
+
+        Resize(cols, rows);
+    }
+
     async function runCommand() {
-        if(!input.trim()) return;
+        if (!input.trim()) return;
 
-        setLines((prev) => [...prev, "> " + input]);
+        // modo normal
+        if (mode === "normal") {
+            if (input === "/shell") {
+                try {
+                    await StartShell();
+                    setMode("shell");
+                    setReady(true);
 
-        try{
-            const res = await RunCommand(input);
-            setLines((prev) => [...prev, res]);
-        } catch(err){
-            setLines((prev) => [...prev, "Error while executing commmand"]);
+                    handleResize();
+
+                } catch (err) {
+                    setLines(prev => [...prev, "Error starting shell: " + (err?.message || err)]);
+                }
+
+                setInput("");
+                return;
+            }
+
+            // outros comandos normais
+            setLines(prev => [...prev, "> " + input]);
+            setInput("");
+            return;
         }
 
-        setInput("");
+        // modo shell (PTY)
+        if (mode === "shell") {
+            if (!ready) return;
+
+            SendInput(input + "\n");
+            setInput("");
+        }
+
+        if(input === 'exit'){
+            setMode("normal");
+            setReady(true);
+            setLines(prev => [...prev, "Entering normal mode..."]);
+        }
     }
 
     function handleKey(e){
@@ -85,9 +133,13 @@ function App() {
 
                     <pre className="terminal-banner">{banner}</pre>
 
-                    {lines.map((line, i) => (
+                    {mode === "normal" && lines.map((line, i) => (
                         <div key={i}>{line}</div>
                     ))}
+
+                    {mode === "shell" && (
+                        <XTerminal />
+                    )}
 
                     <div>
                         &gt;
@@ -112,7 +164,8 @@ function App() {
                         </p>
 
                         <div>
-                            <p>/help - to get all commands</p>
+                            <p>/shell - to enter powershell</p>
+                            <p>exit - to finish powershell</p>
                         </div>
                     </div>
                 </div>
