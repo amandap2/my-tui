@@ -2,11 +2,15 @@ package main
 
 import (
 	"context"
+	shell "my-tui/internal/shell"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // App struct
 type App struct {
-	ctx context.Context
+	ctx   context.Context
+	shell *shell.ShellSession
 }
 
 // NewApp creates a new App application struct
@@ -22,4 +26,40 @@ func (a *App) startup(ctx context.Context) {
 
 func (a *App) RunCommand(command string) string {
 	return "executed " + command
+}
+
+func (a *App) StartShell() error {
+	shell, err := shell.NewShell("powershell.exe")
+	if err != nil {
+		runtime.EventsEmit(a.ctx, "shell:exit")
+		return err
+	}
+
+	a.shell = shell
+
+	a.shell.Listen(
+		func(out string) {
+			runtime.EventsEmit(a.ctx, "shell:output", out)
+		},
+		func() {
+			runtime.EventsEmit(a.ctx, "shell:exit")
+			a.shell = nil
+		},
+	)
+	return nil
+}
+
+func (a *App) SendInput(input string) {
+	if a.shell == nil {
+		return
+	}
+
+	a.shell.Write(input)
+}
+
+func (a *App) Resize(cols, rows int) {
+	if a.shell == nil {
+		return
+	}
+	a.shell.Resize(uint16(cols), uint16(rows))
 }
